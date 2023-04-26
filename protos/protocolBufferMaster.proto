@@ -1,0 +1,15 @@
+syntax = "proto3";
+package MapReduce;
+
+service Master {
+  rpc GetIntermediateResults(IntermediateInput) returns (IntermediateOutput);
+}
+
+message IntermediateInput {
+  repeated string fileInputList = 1;
+}
+
+message IntermediateOutput {
+  bool status = 1;
+  string message = 2;
+}
