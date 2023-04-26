@@ -3,12 +3,14 @@ from concurrent import futures
 import sys
 import time
 import os
+from threading import Lock
 sys.path.insert(0,"generatedBuffers")
 import generatedBuffers.protocolBufferMaster_pb2_grpc as pb2_grpc_master
 import generatedBuffers.protocolBufferMaster_pb2 as pb2_master
 import generatedBuffers.protocolBufferMapper_pb2_grpc as pb2_grpc_mapper
 import generatedBuffers.protocolBufferMapper_pb2 as pb2_mapper
 
+lock = Lock()
 class Master(pb2_grpc_master.MasterServicer):
   def __init__(self,p_mapperCount,p_reducerCount,inputDirectoryPath):
     self.mapperCount = p_mapperCount
@@ -16,6 +18,8 @@ class Master(pb2_grpc_master.MasterServicer):
     self.inputDirectoryPath = inputDirectoryPath
     self.mapperList = []
     self.reducerList = []
+    self.reducerFileList = []
+    self.cntMapperOutputReceived = 0
 
     print("Enter the list of Mappers")
     for i in range(0,self.mapperCount):
@@ -27,7 +31,6 @@ class Master(pb2_grpc_master.MasterServicer):
       mapperStub = pb2_grpc_mapper.MapperStub(mapperChannel)
       self.mapperList.append([host,port,mapperChannel,mapperStub])
     print()
-    # os.mkdir("MapperDirectory")
 
     print("Enter the list of reducers")
     for i in range(0,self.reducerCount):
@@ -36,8 +39,8 @@ class Master(pb2_grpc_master.MasterServicer):
       print("Enter the port of "+str(i+1)+" Reducer: ",end="")
       port = int(input())
       self.reducerList.append([host,port])
+      self.reducerFileList.append([])
     print()
-    os.mkdir("ReducerDirectory")
 
   def invokeMappers(self):
     inputFiles = os.listdir(self.inputDirectoryPath)
@@ -69,8 +72,34 @@ class Master(pb2_grpc_master.MasterServicer):
       print()
   
   def GetIntermediateResults(self, request, context):
-    pass
+    global lock
+    lock.acquire()
+    self.cntMapperOutputReceived += 1
+    cntCount = 0
+    for intermediateFile in request.fileInputList:
+      self.reducerFileList[cntCount].append(intermediateFile)
+      cntCount += 1
+    
+    if self.cntMapperOutputReceived == self.mapperCount:
+      print(self.reducerFileList)
+    
+    response = pb2_master.IntermediateOutput()
+    response.status = True
+    response.message = "Intermediate Results successfully received"
+    lock.release()
+    return response
 
-myMaster = Master(3,2,"./InputFiles")
-input()
-myMaster.invokeMappers()
+
+def Main():
+  host = "localhost"
+  port = 7000
+  myMaster = Master(3,2,"./InputFiles")
+  master = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+  pb2_grpc_master.add_MasterServicer_to_server(myMaster,master)
+  master.add_insecure_port('[::]:'+str(port))
+  master.start()
+  input()
+  myMaster.invokeMappers()
+  master.wait_for_termination()
+
+Main()

@@ -6,6 +6,8 @@ import time
 sys.path.insert(0,"generatedBuffers")
 import generatedBuffers.protocolBufferMapper_pb2_grpc as pb2_grpc_mapper
 import generatedBuffers.protocolBufferMapper_pb2 as pb2_mapper
+import generatedBuffers.protocolBufferMaster_pb2_grpc as pb2_grpc_master
+import generatedBuffers.protocolBufferMaster_pb2 as pb2_master
 import uuid
 import os
 class Mapper(pb2_grpc_mapper.MapperServicer):
@@ -13,6 +15,11 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     self.mapperHost = host
     self.mapperPort = port
     self.mapperUUID = str(uuid.uuid1())
+    self.masterHost = "localhost"
+    self.masterPort = 7000
+    self.masterChannel = grpc.insecure_channel('{}:{}'.format(self.mapperHost, self.masterPort))
+    self.masterStub = pb2_grpc_master.MasterStub(self.masterChannel)
+
     if not os.path.exists("MapperDirectory/"):
       os.mkdir("MapperDirectory")
     self.mapperDir = "MapperDirectory/"+self.mapperUUID
@@ -61,7 +68,11 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     for file in inputFileList:
       self.parseFile(file,invertedIndexDict)
     fileList = self.partitionFiles(invertedIndexDict,reducerCount)
-    return fileList
+    request = pb2_master.IntermediateInput()
+    for val in fileList:
+      request.fileInputList.append(val)
+    response = self.masterStub.GetIntermediateResults(request)
+    print(response)
       
   def GetInputForMapperOperations(self, request, context):
     inputFileList = []
@@ -88,7 +99,3 @@ def Main():
   mapper.start()
   mapper.wait_for_termination()
 Main()
-
-# mapperObj = Mapper("localhost",5001)
-# fileList = mapperObj.invertedIndex(['./InputFiles/Input1.txt','./InputFiles/Input2.txt','./InputFiles/Input3.txt'],2)
-# print(fileList)
