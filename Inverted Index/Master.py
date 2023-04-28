@@ -9,6 +9,8 @@ import generatedBuffers.protocolBufferMaster_pb2_grpc as pb2_grpc_master
 import generatedBuffers.protocolBufferMaster_pb2 as pb2_master
 import generatedBuffers.protocolBufferMapper_pb2_grpc as pb2_grpc_mapper
 import generatedBuffers.protocolBufferMapper_pb2 as pb2_mapper
+import generatedBuffers.protocolBufferReducer_pb2_grpc as pb2_grpc_reducer
+import generatedBuffers.protocolBufferReducer_pb2 as pb2_reducer
 
 lock = Lock()
 class Master(pb2_grpc_master.MasterServicer):
@@ -29,7 +31,7 @@ class Master(pb2_grpc_master.MasterServicer):
       port = int(input())
       mapperChannel = grpc.insecure_channel('{}:{}'.format(host, port))
       mapperStub = pb2_grpc_mapper.MapperStub(mapperChannel)
-      self.mapperList.append([host,port,mapperChannel,mapperStub])
+      self.mapperList.append([host, port, mapperChannel, mapperStub])
     print()
 
     print("Enter the list of reducers")
@@ -38,7 +40,9 @@ class Master(pb2_grpc_master.MasterServicer):
       host = input()
       print("Enter the port of "+str(i+1)+" Reducer: ",end="")
       port = int(input())
-      self.reducerList.append([host,port])
+      reducerChannel = grpc.insecure_channel('{}:{}'.format(host, port))
+      reducerStub = pb2_grpc_reducer.ReducerStub(reducerChannel)
+      self.reducerList.append([host, port, reducerChannel, reducerStub])
       self.reducerFileList.append([])
     print()
 
@@ -71,6 +75,19 @@ class Master(pb2_grpc_master.MasterServicer):
       print(response)
       print()
   
+  def invokeReducers(self):
+    cntIndexReducer = 0
+    for reducerInputList in self.reducerFileList:
+      request = pb2_reducer.ReducerInput()
+      for filePath in reducerInputList:
+        request.fileInputList.append(filePath)
+      request.outputFileName = "output"+str(cntIndexReducer)+".txt"
+      response = self.reducerList[cntIndexReducer][3].GetInputForReducerOperations(request)
+      cntIndexReducer += 1
+      print(response)
+      print()
+
+  
   def GetIntermediateResults(self, request, context):
     global lock
     lock.acquire()
@@ -82,6 +99,7 @@ class Master(pb2_grpc_master.MasterServicer):
     
     if self.cntMapperOutputReceived == self.mapperCount:
       print(self.reducerFileList)
+      self.invokeReducers()
     
     response = pb2_master.IntermediateOutput()
     response.status = True
@@ -93,7 +111,7 @@ class Master(pb2_grpc_master.MasterServicer):
 def Main():
   host = "localhost"
   port = 7000
-  myMaster = Master(3,2,"./InputFiles")
+  myMaster = Master(2,2,"./InputFiles")
   master = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
   pb2_grpc_master.add_MasterServicer_to_server(myMaster,master)
   master.add_insecure_port('[::]:'+str(port))

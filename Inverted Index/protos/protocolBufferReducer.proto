@@ -7,6 +7,7 @@ service Reducer {
 
 message ReducerInput {
   repeated string fileInputList = 1;
+  string outputFileName = 2;
 }
 
 message ReducerOutput {

@@ -17,7 +17,7 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     self.mapperUUID = str(uuid.uuid1())
     self.masterHost = "localhost"
     self.masterPort = 7000
-    self.masterChannel = grpc.insecure_channel('{}:{}'.format(self.mapperHost, self.masterPort))
+    self.masterChannel = grpc.insecure_channel('{}:{}'.format(self.masterHost, self.masterPort))
     self.masterStub = pb2_grpc_master.MasterStub(self.masterChannel)
 
     if not os.path.exists("MapperDirectory/"):
