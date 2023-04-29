@@ -1,0 +1,16 @@
+syntax = "proto3";
+package MapReduce;
+
+service Mapper {
+  rpc GetInputForMapperOperations(MapperInput) returns (MapperOutput);
+}
+
+message MapperInput {
+  repeated string fileInputList = 1;
+  uint64 reducerCount = 2;
+}
+
+message MapperOutput {
+  bool status = 1;
+  string message = 2;
+}
