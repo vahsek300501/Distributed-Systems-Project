@@ -33,7 +33,7 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
       for i in range(1,len(fields)):
         if fields[0] not in invertedIndexDict.keys():
           invertedIndexDict[fields[0]] = []
-        invertedIndexDict[fields[0]].append(fields[i])
+        invertedIndexDict[fields[0]].append((fields[i],inputFile.split("_")[1]))
 
   def partitionFiles(self,invertedIndexDict,reducerCount):
     filePathList = []
@@ -49,7 +49,7 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
       filePath,filePtr = filePathList[keyHash]
       for val in invertedIndexDict[key]:
         line += " "
-        line += val
+        line += str(val)
       filePtr.write(line)
       filePtr.write("\n")
     

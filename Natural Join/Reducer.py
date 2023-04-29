@@ -49,7 +49,17 @@ class Reducer(pb2_grpc_reducer.ReducerServicer):
       line = str(key)
       for val in invertedIndexDict[key]:
         line += " "
-        line += val
+        vals=val.split(",")
+        for item in vals:
+          print(item,item[1])
+          if(item[1]=="table1.txt"):
+            line+=item[0]
+          if(item[1]=="table2.txt"):
+            line+=item[0]
+          else:
+            line=""
+        line+=" "
+        #line += val
       outFile.write(line)
       outFile.write("\n")
     outFile.close()
