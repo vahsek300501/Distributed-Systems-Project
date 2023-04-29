@@ -1,0 +1,3 @@
+python -m grpc_tools.protoc --proto_path=. .\protocolBufferMaster.proto --python_out=../GeneratedBuffers --grpc_python_out=../GeneratedBuffers
+python -m grpc_tools.protoc --proto_path=. .\protocolBufferMapper.proto --python_out=../GeneratedBuffers --grpc_python_out=../GeneratedBuffers
+python -m grpc_tools.protoc --proto_path=. .\protocolBufferReducer.proto --python_out=../GeneratedBuffers --grpc_python_out=../GeneratedBuffers
