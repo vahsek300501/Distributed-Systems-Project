@@ -32,6 +32,8 @@ class Reducer(pb2_grpc_reducer.ReducerServicer):
       if line[-1] == '\n':
         line = line[:-1]
       lineSplit = line.split(" ")
+      lineSplit = list(filter(lambda x: x != '', lineSplit))
+      print(lineSplit)
       key=lineSplit[0]
       if key not in invertedIndexDict.keys():
         invertedIndexDict[key] = []
@@ -47,18 +49,17 @@ class Reducer(pb2_grpc_reducer.ReducerServicer):
     outFile = open(outputFilePath,"w+")
     for key in invertedIndexDict.keys():
       line = str(key)
+      #only contains the key with values greater than 2
+      if(len(invertedIndexDict[key])<2):
+        continue
       for val in invertedIndexDict[key]:
         line += " "
-        vals=val.split(",")
-        for item in vals:
-          print(item,item[1])
-          if(item[1]=="table1.txt"):
-            line+=item[0]
-          if(item[1]=="table2.txt"):
-            line+=item[0]
-          else:
-            line=""
-        line+=" "
+        vals = val.split(",")
+        print(vals)
+        if(vals[1].strip()=="table1.txt"):
+          line+=vals[0].strip()
+        if(vals[1].strip()=="table2.txt"):
+          line+=vals[0].strip()
         #line += val
       outFile.write(line)
       outFile.write("\n")

@@ -49,7 +49,7 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
       filePath,filePtr = filePathList[keyHash]
       for val in invertedIndexDict[key]:
         line += " "
-        line += str(val)
+        line += val[0]+","+val[1]
       filePtr.write(line)
       filePtr.write("\n")
     
