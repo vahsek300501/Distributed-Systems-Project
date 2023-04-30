@@ -30,6 +30,8 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     fileLines = file.readlines()
     for line in fileLines:
       fields = line.strip().split(',')
+      if(fields[0] == 'Name'):
+        continue
       for i in range(1,len(fields)):
         if fields[0] not in invertedIndexDict.keys():
           invertedIndexDict[fields[0]] = []
