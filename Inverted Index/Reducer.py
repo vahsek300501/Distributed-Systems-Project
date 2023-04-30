@@ -40,6 +40,7 @@ class Reducer(pb2_grpc_reducer.ReducerServicer):
         invertedIndexDict[word] = docsSet
   
   def invertedIndex(self,inputFileList,outputFileName):
+    print("Computing Inverted Index")
     outputFilePath = self.outputDirectory+outputFileName
     invertedIndexDict = {}
     for tmpFile in inputFileList:
@@ -49,15 +50,13 @@ class Reducer(pb2_grpc_reducer.ReducerServicer):
       line = str(key)
       for val in invertedIndexDict[key]:
         line += " "
-        line += val
+        line += val[val.rfind(".")-1]
       outFile.write(line)
       outFile.write("\n")
     outFile.close()
 
   def GetInputForReducerOperations(self, request, context):
-    print(request)
-    print(request.fileInputList)
-    # pdb.set_trace()
+    print("Received Inputs Running reducers operations")
     inputFileList = []
     for filePath in request.fileInputList:
       inputFileList.append(filePath)

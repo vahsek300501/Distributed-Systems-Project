@@ -25,7 +25,15 @@ class Reducer(pb2_grpc_reducer.ReducerServicer):
       os.mkdir("Output")
     self.outputDirectory = "Output/"
   
-  def parseFile(self,inputFile,wordCountDict):
+  def cartisianProduct(self,list1,list2):
+    finalVals = []
+    for val1 in list1:
+      for val2 in list2:
+        finalVals.append(str(val1)+" "+str(val2))
+    print(finalVals)
+    return finalVals
+  
+  def parseFile(self,inputFile,naturalJoinDict):
     file = open(inputFile,"r+")
     fileLines = file.readlines()
     for line in fileLines:
@@ -33,36 +41,37 @@ class Reducer(pb2_grpc_reducer.ReducerServicer):
         line = line[:-1]
       lineSplit = line.split(" ")
       word = lineSplit[0]
-      val = int(lineSplit[1])
-      if word in wordCountDict.keys():
-        wordCountDict[word] = wordCountDict[word] +val
-      else:
-        wordCountDict[word] = val
-  
-  def wordCount(self,inputFileList,outputFileName):
-    print("Running Word count")
+      tableNum = int(lineSplit[-1])
+      lineSplit = lineSplit[1:-1]
+      if word not in naturalJoinDict.keys():
+        naturalJoinDict[word] = [[],[]]
+      for val in lineSplit:
+        naturalJoinDict[word][tableNum-1].append(val)
+
+  def naturalJoin(self,inputFileList,outputFileName):
+    print("Running Natural join operations")
     outputFilePath = self.outputDirectory+outputFileName
-    wordCountDict = {}
+    naturalJoinDict = {}
     for tmpFile in inputFileList:
-      self.parseFile(tmpFile,wordCountDict)
-    outFile = open(outputFilePath,"w+")
-    for key in wordCountDict.keys():
-      line = str(key)
-      val = str(wordCountDict[key])
-      line += " "
-      line += val
-      outFile.write(line)
-      outFile.write("\n")
-    outFile.close()
+      self.parseFile(tmpFile,naturalJoinDict)
+    file = open(outputFilePath,"w+")
+    file.write("Name Age Role\n")
+    for key in naturalJoinDict.keys():
+      cartesianProductRes = self.cartisianProduct(naturalJoinDict[key][0],naturalJoinDict[key][1])
+      for val in cartesianProductRes:
+        file.write(str(key)+" ")
+        file.write(val)
+        file.write("\n")
+
 
   def GetInputForReducerOperations(self, request, context):
-    print("Input Received running Reducer Operations")
+    print("Received Inputs running Reduce operations")
     # pdb.set_trace()
     inputFileList = []
     for filePath in request.fileInputList:
       inputFileList.append(filePath)
     outputFileName = request.outputFileName
-    reducerThread = Thread(target=self.wordCount,args = [inputFileList,outputFileName])
+    reducerThread = Thread(target=self.naturalJoin,args = [inputFileList,outputFileName])
     reducerThread.start()
 
     response = pb2_reducer.ReducerOutput()

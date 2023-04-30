@@ -63,6 +63,7 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     return fileList
     
   def invertedIndex(self,inputFileList, reducerCount):
+    print("Computing Inverted Index")
     time.sleep(2)
     invertedIndexDict = {}
     for file in inputFileList:
@@ -71,10 +72,12 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     request = pb2_master.IntermediateInput()
     for val in fileList:
       request.fileInputList.append(val)
+    print("Invoking Master")
     response = self.masterStub.GetIntermediateResults(request)
     print(response)
       
   def GetInputForMapperOperations(self, request, context):
+    print("Received Inputs running mapper operations")
     inputFileList = []
     for filePath in request.fileInputList:
       inputFileList.append(filePath)

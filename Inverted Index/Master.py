@@ -47,6 +47,7 @@ class Master(pb2_grpc_master.MasterServicer):
     print()
 
   def invokeMappers(self):
+    print("Invoking Reducers")
     inputFiles = os.listdir(self.inputDirectoryPath)
     q = int(len(inputFiles)/self.mapperCount)
     r = len(inputFiles)%self.mapperCount
@@ -76,6 +77,7 @@ class Master(pb2_grpc_master.MasterServicer):
       print()
   
   def invokeReducers(self):
+    print("Invoking Mappers")
     cntIndexReducer = 0
     for reducerInputList in self.reducerFileList:
       request = pb2_reducer.ReducerInput()
@@ -111,11 +113,12 @@ class Master(pb2_grpc_master.MasterServicer):
 def Main():
   host = "localhost"
   port = 7000
-  myMaster = Master(2,2,"./InputFiles")
+  myMaster = Master(3,2,"./InputFiles")
   master = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
   pb2_grpc_master.add_MasterServicer_to_server(myMaster,master)
   master.add_insecure_port('[::]:'+str(port))
   master.start()
+  print("Press 1 to start the execution")
   input()
   myMaster.invokeMappers()
   master.wait_for_termination()

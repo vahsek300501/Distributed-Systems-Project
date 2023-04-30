@@ -11,6 +11,7 @@ import generatedBuffers.protocolBufferMapper_pb2_grpc as pb2_grpc_mapper
 import generatedBuffers.protocolBufferMapper_pb2 as pb2_mapper
 import generatedBuffers.protocolBufferReducer_pb2_grpc as pb2_grpc_reducer
 import generatedBuffers.protocolBufferReducer_pb2 as pb2_reducer
+import pdb
 
 lock = Lock()
 class Master(pb2_grpc_master.MasterServicer):
@@ -31,7 +32,7 @@ class Master(pb2_grpc_master.MasterServicer):
       port = int(input())
       mapperChannel = grpc.insecure_channel('{}:{}'.format(host, port))
       mapperStub = pb2_grpc_mapper.MapperStub(mapperChannel)
-      self.mapperList.append([host,port,mapperChannel,mapperStub])
+      self.mapperList.append([host, port, mapperChannel, mapperStub])
     print()
 
     print("Enter the list of reducers")
@@ -75,7 +76,7 @@ class Master(pb2_grpc_master.MasterServicer):
       mapperListInd+=1
       print(response)
       print()
-
+  
   def invokeReducers(self):
     print("Invoking Reducers")
     cntIndexReducer = 0
@@ -88,6 +89,7 @@ class Master(pb2_grpc_master.MasterServicer):
       cntIndexReducer += 1
       print(response)
       print()
+
   
   def GetIntermediateResults(self, request, context):
     global lock
@@ -112,12 +114,12 @@ class Master(pb2_grpc_master.MasterServicer):
 def Main():
   host = "localhost"
   port = 7000
-  myMaster = Master(3,2,"./InputFiles")
+  myMaster = Master(2,2,"./InputFiles")
   master = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
   pb2_grpc_master.add_MasterServicer_to_server(myMaster,master)
   master.add_insecure_port('[::]:'+str(port))
   master.start()
-  print("Enter 1 to start the operations")
+  print("Enter 1 to start the execution")
   input()
   myMaster.invokeMappers()
   master.wait_for_termination()

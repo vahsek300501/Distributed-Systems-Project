@@ -17,7 +17,7 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     self.mapperUUID = str(uuid.uuid1())
     self.masterHost = "localhost"
     self.masterPort = 7000
-    self.masterChannel = grpc.insecure_channel('{}:{}'.format(self.mapperHost, self.masterPort))
+    self.masterChannel = grpc.insecure_channel('{}:{}'.format(self.masterHost, self.masterPort))
     self.masterStub = pb2_grpc_master.MasterStub(self.masterChannel)
 
     if not os.path.exists("MapperDirectory/"):
@@ -25,25 +25,7 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     self.mapperDir = "MapperDirectory/"+self.mapperUUID
     os.mkdir("MapperDirectory/"+self.mapperUUID)
   
-
-  # CAN USE THIS ONE
-  def parseFile(self,inputFile,wordCountDict):
-    file = open(inputFile,"r+")
-    fileLines = file.readlines()
-    for line in fileLines:
-      if line[-1] == '\n':
-        line = line[:-1]
-      words = line.split(" ")
-      for tmpWord in words:
-        word = tmpWord.lower()
-        if word not in wordCountDict.keys():
-          wordCountDict[word] = 1
-        else:
-          wordCountDict[word] += 1
-
-
-# WILL NEED TO CHANGE THIS ONE
-  def partitionFiles(self,wordCountDict,reducerCount):
+  def writeToFile(self,fileLineList,reducerCount):
     filePathList = []
     fileList = []
     for i in range(0,reducerCount):
@@ -51,33 +33,48 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
       filePtr = open(filePath,"w+")
       filePathList.append((filePath,filePtr))
     
-    for key in wordCountDict.keys():
-      line = str(key)
+    for val in fileLineList:
+      key = val[:val.find(" ")]
       keyHash = len(str(key))%reducerCount
       filePath,filePtr = filePathList[keyHash]
-      val = wordCountDict[key]
-      line += " "
-      line += str(val)
-      filePtr.write(line)
+      filePtr.write(val)
       filePtr.write("\n")
     
     for fileVar in filePathList:
       fileVar[1].close()
       fileList.append(fileVar[0])
     return fileList
+
+  def parseFile(self,filePath,tableNum,fileLineList):
+    file = open(filePath,"r+")
+    fileLines = file.readlines()
+    file.close()
+    fileLines = fileLines[1:]
+    for line in fileLines:
+      if line[-1] == '\n':
+        line = line[:-1]
+      line = line +" "
+      line = line + str(tableNum)
+      fileLineList.append(line)
     
-  def wordCount(self,inputFileList, reducerCount):
-    print("Running word count")
+
+  def naturalJoin(self,inputFileList,reducerCount):
+    print("Computing Natural Joins")
     time.sleep(2)
-    wordCountDict = {}
-    for file in inputFileList:
-      self.parseFile(file,wordCountDict)
-    fileList = self.partitionFiles(wordCountDict,reducerCount)
+    fileLineList = []
+    for filePath in inputFileList:
+      print(filePath)
+      tableNum = int(filePath[filePath.rfind(".")-1])
+      self.parseFile(filePath,tableNum,fileLineList)
+    print(fileLineList)
+
+    fileList = self.writeToFile(fileLineList,reducerCount)
     request = pb2_master.IntermediateInput()
     for val in fileList:
       request.fileInputList.append(val)
     print("Invoking Master")
     response = self.masterStub.GetIntermediateResults(request)
+    print(response)
       
   def GetInputForMapperOperations(self, request, context):
     print("Received Inputs running Map operations")
@@ -85,8 +82,8 @@ class Mapper(pb2_grpc_mapper.MapperServicer):
     for filePath in request.fileInputList:
       inputFileList.append(filePath)
     reducerCount = request.reducerCount
-    wordCountThread = Thread(target=self.wordCount,args=[inputFileList,reducerCount])
-    wordCountThread.start()
+    invertedIndexThread = Thread(target=self.naturalJoin,args=[inputFileList,reducerCount])
+    invertedIndexThread.start()
 
     response = pb2_mapper.MapperOutput()
     response.status = True
