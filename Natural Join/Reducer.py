@@ -11,6 +11,8 @@ import generatedBuffers.protocolBufferMaster_pb2 as pb2_master
 import uuid
 import os
 import pdb
+import pandas as pd
+import itertools
 
 class Reducer(pb2_grpc_reducer.ReducerServicer):
   def __init__(self,host,port):
@@ -48,22 +50,35 @@ class Reducer(pb2_grpc_reducer.ReducerServicer):
       self.parseFile(tmpFile,invertedIndexDict)
     outFile = open(outputFilePath,"w+")
     for key in invertedIndexDict.keys():
-      line = str(key)
-      #only contains the key with values greater than 2
-      if(len(invertedIndexDict[key])<2):
-        continue
+      tempdict = {}
       for val in invertedIndexDict[key]:
-        line += " "
         vals = val.split(",")
-        print(vals)
-        if(vals[1].strip()=="table1.txt"):
-          line+=vals[0].strip()
-        if(vals[1].strip()=="table2.txt"):
-          line+=vals[0].strip()
-        #line += val
-      outFile.write(line)
-      outFile.write("\n")
+        if(vals[1].strip() not in tempdict.keys()):
+          tempdict[vals[1].strip()] = []
+        tempdict[vals[1].strip()].append(vals[0].strip())
+    
+      for i in itertools.product(invertedIndexDict.keys(),tempdict['table1.txt'],tempdict['table2.txt']):
+        outFile.write(str(i))
+        outFile.write("\n")
     outFile.close()
+      
+    # for key in invertedIndexDict.keys():
+    #   line = str(key)
+    #   #only contains the key with values greater than 2
+    #   if(len(invertedIndexDict[key])<2):
+    #     continue
+    #   for val in invertedIndexDict[key]:
+    #     line += " "
+    #     vals = val.split(",")
+    #     print(vals)
+    #     if(vals[1].strip()=="table1.txt"):
+    #       line+=vals[0].strip()
+    #     if(vals[1].strip()=="table2.txt"):
+    #       line+=vals[0].strip()
+    #     #line += val
+    #   outFile.write(line)
+    #   outFile.write("\n")
+    # outFile.close()
 
   def GetInputForReducerOperations(self, request, context):
     print(request)
